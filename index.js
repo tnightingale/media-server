@@ -1,3 +1,11 @@
+Function.prototype.method = function (name, func) {
+  if (!this.prototype[name]) {
+    this.prototype[name] = func;
+    return this;
+  }
+}
+
+
 var fs = require('fs');
 
 var File = function(name, type, dir) {
@@ -7,15 +15,15 @@ var File = function(name, type, dir) {
   this.dir_depth = dir.depth;
 }
 
-File.prototype.toString = function() {
-  var output = "";
+File.method('toString', function() {
+  var output = '';
 
-  output += "[" + this.type + "]" + " ";
-  output += this.name + " "
-  output += "(" + this.dir_path + ")";
+  output += '[' + this.type + ']' + ' ';
+  output += this.name + ' '
+  output += '(' + this.dir_path + ')';
 
   return output;
-}
+});
 
 var Directory = function(path, contents, depth) {
   this.path = path;
@@ -25,17 +33,17 @@ var Directory = function(path, contents, depth) {
   this.directories = [];
 }
 
-Directory.prototype.addFile = function(file) {
+Directory.method('addFile', function(file) {
   this.files.push(file);
-}
+});
 
-Directory.prototype.addDir = function(dir) {
+Directory.method('addDir', function(dir) {
   this.directories.push(dir);
-}
+});
 
-Directory.prototype.getFileInfo = function(name, callback) {
-  var filepath = this.path + "/" + name;
-  var dir = this;
+Directory.method('getFileInfo', function(name, callback) {
+  var filepath = this.path + '/' + name;
+  var that = this;
 
   fs.lstat(filepath, function (err, stats) {
     if (err) {
@@ -43,41 +51,42 @@ Directory.prototype.getFileInfo = function(name, callback) {
     }
 
     if (stats.isSymbolicLink()) {
-      dir.addFile(new File(name, 's', dir));
+      that.addFile(new File(name, 's', that));
     }
     else if (stats.isDirectory()) {
-      dir.addDir(filepath);
+      that.addDir(filepath);
     } 
     else if (stats.isFile()) {
-      dir.addFile(new File(name, 'f', dir));
+      that.addFile(new File(name, 'f', that));
     }
 
-    callback(dir);
+    callback(that);
   });
-}
+});
 
-Directory.prototype.processContents = function(callback) {
+Directory.method('processContents', function(callback) {
   for (var i = 0; i < this.contents.length; i++) {
     this.getFileInfo(this.contents[i], callback);
   }
-}
+});
 
-Directory.prototype.toString = function() {
-  var output = "";
+Directory.method('toString', function() {
+  var output = '';
 
-  output += "> Directory: " + this.path + "\n"
-  output += "  Directories:" + "\n";
+  output += '> Directory: ' + this.path + '\n';
+
+  output += '  Directories:' + '\n';
   for (var i = 0; i < this.directories.length; i++) {
-    output += "  + " + this.directories[i] + "\n";
+    output += '  + ' + this.directories[i] + '\n';
   }
 
-  output += "  Files:" + "\n";
+  output += '  Files:' + '\n';
   for (var i = 0; i < this.files.length; i++) {
-    output += "  - " + this.files[i].toString() + "\n";
+    output += '  - ' + this.files[i].toString() + '\n';
   }
 
   return output;
-}
+});
 
 function traverse(path, depth, callback) {
   fs.readdir(path, function(err, files) {
