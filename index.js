@@ -5,111 +5,182 @@ Function.prototype.method = function (name, func) {
   }
 }
 
+Object.method('superior', function (name) {
+  var that = this;
+  var method = that[name];
+
+  return function () {
+    return method.apply(that, arguments);
+  };
+});
+
 
 var fs = require('fs');
 
-var File = function(name, type, dir) {
-  this.name = name;
-  this.type = type;
-  this.dir_path = dir.path;
-  this.dir_depth = dir.depth;
-}
+var file = function (spec) {
+  var that = {},
+      name = spec.name,
+      type = spec.type,
+      path = spec.path;
 
-File.method('toString', function() {
-  var output = '';
+  var to_string = function () {
+    var output = '';
 
-  output += '[' + this.type + ']' + ' ';
-  output += this.name + ' '
-  output += '(' + this.dir_path + ')';
+    output += '[' + type + ']' + ' ';
+    output += name + ' ';
+    output += '(' + path + ')';
 
-  return output;
-});
+    return output;
+  };
+  that.to_string = to_string;
 
-var Directory = function(path, contents, depth) {
-  this.path = path;
-  this.contents = contents;
-  this.depth = depth;
-  this.files = [];
-  this.directories = [];
-}
+  var get_path = function () {
+    return path;
+  };
+  that.get_path = get_path;
 
-Directory.method('addFile', function(file) {
-  this.files.push(file);
-});
+  var get_name = function () {
+    return name;
+  };
+  that.get_name = get_name;
 
-Directory.method('addDir', function(dir) {
-  this.directories.push(dir);
-});
+  return that;
+};
 
-Directory.method('getFileInfo', function(name, callback) {
-  var filepath = this.path + '/' + name;
-  var that = this;
 
-  fs.lstat(filepath, function (err, stats) {
-    if (err) {
-      throw err;
+var directory = function (spec) {
+  var that = file(spec),
+      contents = spec.contents,
+      files = [],
+      directories = [];
+
+  var add_file = function (file) {
+    files.push(file);
+    return that;
+  };
+  that.add_file = add_file;
+
+  var add_dir = function (dir) {
+    directories.push(dir);
+    return that;
+  };
+  that.add_dir = add_dir;
+
+  var process_contents = function (callback) {
+    var get_file_info = function (name, callback) {
+      var path = that.get_path(),
+          def = {},
+          i = 0;
+
+      fs.lstat(path + '/' + name, function (err, stats) {
+        if (err) {
+          throw err;
+        }
+
+        def.name = name,
+        def.path = path;
+
+        if (stats.isSymbolicLink()) {
+          def.type = 's';
+          add_file(file(def));
+        }
+        else if (stats.isDirectory()) {
+          def.type = 'd';
+          add_dir(directory(def));
+        } 
+        else if (stats.isFile()) {
+          def.type = 'f';
+          add_file(file(def));
+        }
+
+        callback(that);
+      });
+    };
+
+    for (i = 0; i < contents.length; i += 1) {
+      get_file_info(contents[i], callback);
+    }
+  };
+  that.process_contents = process_contents;
+
+  var is_processed = function () {
+    return files.length + directories.length < contents.length;
+  };
+  that.is_processed = is_processed;
+
+  var to_string = function () {
+    var output = '',
+        i = 0;
+
+    output += '> Directory: ' + that.get_path() + '\n';
+    if (directories.length > 0) {
+      for (i = 0; i < directories.length; i += 1) {
+        output += '  + ' + directories[i].get_name() + '\n';
+      }
     }
 
-    if (stats.isSymbolicLink()) {
-      that.addFile(new File(name, 's', that));
-    }
-    else if (stats.isDirectory()) {
-      that.addDir(filepath);
-    } 
-    else if (stats.isFile()) {
-      that.addFile(new File(name, 'f', that));
+    if (files.length > 0) {
+      for (i = 0; i < files.length; i += 1) {
+        output += '  - ' + files[i].to_string() + '\n';
+      }
     }
 
-    callback(that);
-  });
-});
+    return output;
+  };
+  that.to_string = to_string;
 
-Directory.method('processContents', function(callback) {
-  for (var i = 0; i < this.contents.length; i++) {
-    this.getFileInfo(this.contents[i], callback);
+  var get_directories = function () {
+    return directories;
+  };
+  that.get_directories = get_directories;
+
+  return that;
+};
+
+var traverse = function (path, callback, state) {
+  var def = {},
+      dir = {};
+
+  //state || { depth: 0 };
+
+  var finish = function (dir) {
+    var directories = dir.get_directories(),
+        path = dir.get_path(),
+        name,
+        i = 0;
+
+    for (i = 0; i < directories.length; i++) {
+      name = directories[i].get_name();
+      traverse(path + '/' + name, callback);
+    }
+
+    callback(dir);
   }
-});
 
-Directory.method('toString', function() {
-  var output = '';
-
-  output += '> Directory: ' + this.path + '\n';
-
-  output += '  Directories:' + '\n';
-  for (var i = 0; i < this.directories.length; i++) {
-    output += '  + ' + this.directories[i] + '\n';
-  }
-
-  output += '  Files:' + '\n';
-  for (var i = 0; i < this.files.length; i++) {
-    output += '  - ' + this.files[i].toString() + '\n';
-  }
-
-  return output;
-});
-
-function traverse(path, depth, callback) {
   fs.readdir(path, function(err, files) {
     if (err) {
       throw err;
     }
 
-    var dir = new Directory(path, files, depth);
-    dir.processContents(function(dir) {
-      for (var i = 0; i < dir.directories.length; i++) {
-        traverse(dir.directories[i], dir.depth + 1, callback);
-      }
-      callback(dir);
-    });
-  });
-}
+    def = {
+      name: '.',
+      type: 'd',
+      path: path,
+      contents: files
+    }
 
-function printDir(dir) {
-  if (dir.files.length + dir.directories.length < dir.contents.length) {
+    dir = directory(def);
+    dir.process_contents(finish);
+  });
+};
+
+var print_dir = function (dir) {
+  if (dir.is_processed()) {
     return;
   }
 
-  console.log(dir.toString());
-}
+  var string = dir.to_string();
+  console.log(string);
+};
 
-traverse('/Users/thegreat/workspace/sandbox/subnode', 0, printDir);
+traverse('/Users/thegreat/workspace/sandbox/subnode', print_dir);
