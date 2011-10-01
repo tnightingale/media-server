@@ -67,7 +67,7 @@ var directory = function (spec) {
   that.add_dir = add_dir;
 
   var process_contents = function (callback) {
-    var get_file_info = function (name, callback) {
+    var get_file_info = function (name) {
       var path = that.get_path(),
           def = {},
           i = 0;
@@ -98,7 +98,7 @@ var directory = function (spec) {
     };
 
     for (i = 0; i < contents.length; i += 1) {
-      get_file_info(contents[i], callback);
+      get_file_info(contents[i]);
     }
   };
   that.process_contents = process_contents;
@@ -141,20 +141,26 @@ var traverse = function (path, callback, state) {
   var def = {},
       dir = {};
 
-  //state || { depth: 0 };
+  state = state || { depth: 0 };
 
   var finish = function (dir) {
     var directories = dir.get_directories(),
         path = dir.get_path(),
         name,
+        new_state = { depth: state.depth + 1 },
         i = 0;
+
+    if (dir.is_processed()) {
+      return;
+    }
 
     for (i = 0; i < directories.length; i++) {
       name = directories[i].get_name();
-      traverse(path + '/' + name, callback);
+      traverse(path + '/' + name, callback, new_state);
     }
 
-    callback(dir);
+    state['dir'] = dir;
+    callback(state);
   }
 
   fs.readdir(path, function(err, files) {
@@ -174,13 +180,9 @@ var traverse = function (path, callback, state) {
   });
 };
 
-var print_dir = function (dir) {
-  if (dir.is_processed()) {
-    return;
-  }
-
-  var string = dir.to_string();
-  console.log(string);
+var print_dir = function (state) {
+  var string = state.dir.to_string();
+  console.log("Depth: " + state.depth + "\n" + string);
 };
 
-traverse('/Users/thegreat/workspace/sandbox/subnode', print_dir);
+traverse('/Users/thegreat/workspace/sandbox/subnode/test', print_dir);
