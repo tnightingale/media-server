@@ -10,16 +10,18 @@ var file = function (spec) {
   /**
    *
    */
-  var to_string = function () {
-    var output = '';
-
-    output += '[' + type + ']' + ' ';
-    output += name + ' ';
-    output += '(' + path + ')';
-
-    return output;
+  var get_name = function () {
+    return name;
   };
-  that.to_string = to_string;
+  that.get_name = get_name;
+
+  /**
+   *
+   */
+  var get_type = function () {
+    return type;
+  };
+  that.get_type = get_type;
 
   /**
    *
@@ -32,10 +34,16 @@ var file = function (spec) {
   /**
    *
    */
-  var get_name = function () {
-    return name;
+  var to_string = function () {
+    var output = '';
+
+    output += '[' + type + ']' + ' ';
+    output += name + ' ';
+    output += '(' + path + ')';
+
+    return output;
   };
-  that.get_name = get_name;
+  that.to_string = to_string;
 
   return that;
 };

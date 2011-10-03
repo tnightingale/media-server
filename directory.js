@@ -7,9 +7,9 @@ var file = require('./file');
  */
 var directory = function (spec) {
   var that = file.create(spec),
-      contents = spec.contents,
-      files = [],
-      directories = [];
+      contents = spec.contents || [],
+      files = spec.files || [],
+      directories = spec.directories || [];
 
   /**
    *
@@ -18,7 +18,6 @@ var directory = function (spec) {
     files.push(file);
     return that;
   };
-  that.add_file = add_file;
 
   /**
    *
@@ -27,7 +26,30 @@ var directory = function (spec) {
     directories.push(dir);
     return that;
   };
-  that.add_dir = add_dir;
+
+  /**
+   *
+   */
+  var is_processed = function () {
+    return files.length + directories.length < contents.length;
+  };
+  that.is_processed = is_processed;
+
+  /**
+   *
+   */
+  var get_directories = function () {
+    return directories;
+  };
+  that.get_directories = get_directories;
+
+  /**
+   *
+   */
+  var get_files = function () {
+    return files;
+  };
+  that.get_files = get_files;
 
   /**
    *
@@ -87,14 +109,6 @@ var directory = function (spec) {
   /**
    *
    */
-  var is_processed = function () {
-    return files.length + directories.length < contents.length;
-  };
-  that.is_processed = is_processed;
-
-  /**
-   *
-   */
   var to_string = function () {
     var output = '',
         i = 0;
@@ -115,14 +129,6 @@ var directory = function (spec) {
     return output;
   };
   that.to_string = to_string;
-
-  /**
-   *
-   */
-  var get_directories = function () {
-    return directories;
-  };
-  that.get_directories = get_directories;
 
   return that;
 };

@@ -24,7 +24,7 @@ var bfs = function (directory, callback, state) {
     callback(dir, state);
   };
 
-  directory.get_contents(function(dir) {
+  directory.get_contents(function (dir) {
     dir.process_contents(finish);
   });
 };
