@@ -7,6 +7,9 @@ var file = function (spec) {
       type = spec.type,
       path = spec.path;
 
+  /**
+   *
+   */
   var to_string = function () {
     var output = '';
 
@@ -18,11 +21,17 @@ var file = function (spec) {
   };
   that.to_string = to_string;
 
+  /**
+   *
+   */
   var get_path = function () {
     return path;
   };
   that.get_path = get_path;
 
+  /**
+   *
+   */
   var get_name = function () {
     return name;
   };

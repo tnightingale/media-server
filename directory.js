@@ -11,18 +11,27 @@ var directory = function (spec) {
       files = [],
       directories = [];
 
+  /**
+   *
+   */
   var add_file = function (file) {
     files.push(file);
     return that;
   };
   that.add_file = add_file;
 
+  /**
+   *
+   */
   var add_dir = function (dir) {
     directories.push(dir);
     return that;
   };
   that.add_dir = add_dir;
 
+  /**
+   *
+   */
   var get_contents = function (callback) {
     fs.readdir(that.get_path() + '/' + that.get_name(), function (err, files) {
       if (err) {
@@ -35,6 +44,9 @@ var directory = function (spec) {
   };
   that.get_contents = get_contents;
 
+  /**
+   *
+   */
   var process_contents = function (callback) {
     var get_file_info = function (name) {
       var path = that.get_path() + '/' + that.get_name(),
@@ -72,11 +84,17 @@ var directory = function (spec) {
   };
   that.process_contents = process_contents;
 
+  /**
+   *
+   */
   var is_processed = function () {
     return files.length + directories.length < contents.length;
   };
   that.is_processed = is_processed;
 
+  /**
+   *
+   */
   var to_string = function () {
     var output = '',
         i = 0;
@@ -98,6 +116,9 @@ var directory = function (spec) {
   };
   that.to_string = to_string;
 
+  /**
+   *
+   */
   var get_directories = function () {
     return directories;
   };
