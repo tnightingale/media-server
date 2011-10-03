@@ -24,7 +24,7 @@ var directory = function (spec) {
   that.add_dir = add_dir;
 
   var get_contents = function (callback) {
-    fs.readdir(that.get_path(), function (err, files) {
+    fs.readdir(that.get_path() + '/' + that.get_name(), function (err, files) {
       if (err) {
         throw err;
       }
@@ -37,7 +37,7 @@ var directory = function (spec) {
 
   var process_contents = function (callback) {
     var get_file_info = function (name) {
-      var path = that.get_path(),
+      var path = that.get_path() + '/' + that.get_name(),
           def = {},
           i = 0;
 
@@ -46,7 +46,7 @@ var directory = function (spec) {
           throw err;
         }
 
-        def.name = name,
+        def.name = name;
         def.path = path;
 
         if (stats.isSymbolicLink()) {
@@ -81,7 +81,7 @@ var directory = function (spec) {
     var output = '',
         i = 0;
 
-    output += '> Directory: ' + that.get_path() + '\n';
+    output += '> Directory: ' + that.get_name() + '\n';
     if (directories.length > 0) {
       for (i = 0; i < directories.length; i += 1) {
         output += '  + ' + directories[i].get_name() + '\n';
