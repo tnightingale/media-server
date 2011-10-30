@@ -1,9 +1,11 @@
-var argv = require('optimist').argv;
-var directory = require('./directory');
-var traverse = require('./traverse');
+var argv = require('optimist').argv,
+    directory = require('./directory'),
+    traverse = require('./traverse'),
+    id3 = require('./id3'),
+    reader = require('./reader');
 
-var path = argv.f || './';
-var pieces = path.split('/');
+var path = argv.f || './',
+    pieces = path.split('/');
 
 var dir = directory.create({
   name: pieces.pop(),
