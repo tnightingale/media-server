@@ -15,7 +15,8 @@ var dir = directory.create({
 
 traverse.bfs(dir, function (dir, state) {
   var string = dir.to_string(),
-      files = dir.get_files();
+      files = dir.get_files(),
+      FileAPIReader = id3.getReader('FileAPIReader');
 
   var callback = function (path) {
     var tags = id3.getAllTags(path);
@@ -27,9 +28,7 @@ traverse.bfs(dir, function (dir, state) {
 
   var i = 0;
   for (i = 0; i < files.length; i++) {
-    var path = files[i].get_path() + '/' + files[i].get_name(),
-        FileAPIReader = id3.getReader('FileAPIReader');
-
+    var path = files[i].get_path() + '/' + files[i].get_name();
     id3.loadTags(path, callback, {dataReader: new FileAPIReader(new File(path))});
   }
 
