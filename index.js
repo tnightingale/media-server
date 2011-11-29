@@ -1,11 +1,13 @@
 var id3 = require('id3'),
     directory = require('./directory'),
     traverse = require('./traverse'),
-    File = require('file-api').File;
+    File = require('file-api').File,
+    semaphore = require('./semaphore');
 
 var index = {};
 
 exports.init = function (fields, path) {
+  var monitor = semaphore.new(10);
   var pieces = path.split('/');
 
   var dir = directory.create({
@@ -20,10 +22,10 @@ exports.init = function (fields, path) {
 
   traverse.bfs(dir, function (dir, state) {
     var string = dir.to_string(),
-        files = dir.get_files(),
-        FileAPIReader = id3.getReader('FileAPIReader');
+        files = dir.get_files();
 
     var callback = function (path) {
+      monitor.signal();
       var tags = id3.getAllTags(path);
       if (tags) {
         var version = tags.version ? tags.version : 'n/a';
@@ -38,7 +40,7 @@ exports.init = function (fields, path) {
     var i = 0;
     for (i = 0; i < files.length; i++) {
       var path = files[i].get_path() + '/' + files[i].get_name();
-      id3.loadTags(path, callback, {dataReader: new FileAPIReader(new File(path))});
+      monitor.wait(loadTags, path, callback);
     }
 
     //console.log("Depth: %d\n%s", state.depth, string);
@@ -46,6 +48,11 @@ exports.init = function (fields, path) {
 
   return index;
 };
+
+function loadTags(path, callback) {
+  var FileAPIReader = id3.getReader('FileAPIReader');
+  id3.loadTags(path, callback, {dataReader: new FileAPIReader(new File(path))});
+}
 
 exports.get = function (field) {
   if (!field) {
