@@ -1,31 +1,22 @@
-var id3 = require('mtags'),
-    directory = require('./directory'),
-    traverse = require('./traverse'),
-    File = require('file-api').File,
+var File = require('file-api').File,
+    mtags = require('mtags'),
+    traverse = require('./traversal').traverse,
     semaphore = require('./monitor').semaphore(50);
 
 var index = {};
 
 exports.init = function (fields, path) {
-  var pieces = path.split('/');
-
-  var dir = directory.create({
-    name: pieces.pop(),
-    type: 'd',
-    path: pieces.join('/')
-  });
-
   for (field in fields) {
     index[field] = [];
   }
 
-  traverse.bfs(dir, function (dir, state) {
+  traverse.bfs(path, function (dir, state) {
     var string = dir.to_string(),
         files = dir.get_files();
 
     var callback = function (path) {
       semaphore.signal();
-      var tags = id3.getAllTags(path);
+      var tags = mtags.getAllTags(path);
       if (tags) {
         var version = tags.version ? tags.version : 'n/a';
         console.log("(%s)\t+ %s, %s: %s\t| %s", version, tags.artist, tags.album, tags.title, path);
@@ -47,14 +38,14 @@ exports.init = function (fields, path) {
 };
 
 function loadTags(path, callback) {
-  var FileAPIReader = id3.getReader('FileAPIReader');
-  id3.loadTags(path, callback, {dataReader: new FileAPIReader(new File(path))});
+  var reader = new mtags.getReader('FileAPIReader');
+  mtags.loadTags(path, callback, {dataReader: new reader(new File(path))});
 }
 
 exports.get = function (field) {
   if (!field) {
     return index;
-  } 
+  }
 
   if (!index[field]) {
     throw "Error: Invalid index field.";
