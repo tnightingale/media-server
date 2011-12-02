@@ -1,0 +1,31 @@
+{
+  "name": "media-server",
+  "description": "Super duper personal media streaming server",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/thegreat/media-server.git"
+  },
+  "keywords": [
+    "stream",
+    "mp3",
+    "music",
+    "audio"
+  ],
+  "author": "Tom Nightingale <tom@tnightingale.com>",
+  "dependencies": {
+    "mtags": "0.1.x",
+    "optimist": "0.2.x",
+    "express": "2.5.x",
+    "express-resource": "0.2.x"
+  },
+  "main": "./server.js",
+  "version": "0.1.0",
+  "engine": "node >= 0.4.11",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": "0.6.x"
+  }
+}
