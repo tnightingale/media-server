@@ -1,15 +1,16 @@
-var argv = require('optimist').argv,
+var mongoose = require('mongoose'),
+    index = require('./index.js')
+    _ = require('underscore'),
     app = require('express').createServer(),
-    index = require('./index.js');
+    argv = require('optimist').argv;
 
-var resource_types = {
-  artists: 'artist',
-  albums: 'album',
-  tracks: 'title'
-};
+var BASE_PATH = argv.f || './';
 
-var data = index.init(resource_types, argv.f || './');
+// Connect to mongodb.
+mongoose.connect('mongodb://localhost/media');
 
-require('./routes.js').init(app, data);
+// Initialize index.
+index.init(BASE_PATH);
+require('./routes.js').init(app);
 
 app.listen(3000);

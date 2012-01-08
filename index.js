@@ -1,55 +1,86 @@
 var File = require('file-api').File,
     mtags = require('mtags'),
     traverse = require('./traversal').traverse,
-    semaphore = require('./monitor').semaphore(50);
+    semaphore = require('./monitor').semaphore(50),
+    mongoose = require('mongoose');
 
-var index = {};
+// Get/define Track model.
+var Track = require('./models/track').Track(mongoose);
 
-exports.init = function (fields, path) {
-  for (field in fields) {
-    index[field] = [];
-  }
+// Known tracks are cached.
+var cache = {};
 
-  traverse.bfs(path, function (dir, state) {
-    var string = dir.to_string(),
-        files = dir.get_files();
+function init(basePath) {
+  // Prepare track cache.
+  Track.find({}, ['path'], function (err, paths) {
+    if (!err) {
+      // Key cache by file path.
+      _.each(paths, function (element, index) {
+        // Tracks initialized to false until existence is verified.
+        cache[element.path] = false;
+      });
 
-    var callback = function (path) {
-      semaphore.signal();
-      var tags = mtags.getAllTags(path);
-      if (tags) {
-        var version = tags.version ? tags.version : 'n/a';
-        console.log("(%s)\t+ %s, %s: %s\t| %s", version, tags.artist, tags.album, tags.title, path);
+      index(basePath);
 
-        for (field in fields) {
-          index[field].push(tags[fields[field]]);
-        }
-      }
-    };
-
-    var i = 0;
-    for (i = 0; i < files.length; i++) {
-      var path = files[i].get_path() + '/' + files[i].get_name();
-      semaphore.wait(loadTags, path, callback);
+    } else {
+      throw err;
     }
   });
+}
+exports.init = init;
 
-  return index;
+function index(path) {
+  // Begin filesystem traversal.
+  traverse.bfs(path, function (dir, state) {
+    var files = dir.get_files(),
+        i = 0;
+
+    // Each file is checked against the cache before it is opened for reading.
+    // If file already exists in cache, it is marked as verified and skipped.
+    // New files are parsed then verified. Their metadata is stored in db.
+    for (i = 0, length = files.length; i < length; i++) {
+      var path = files[i].get_path() + '/' + files[i].get_name();
+
+      if (cache.hasOwnProperty(path)) {
+        // Mark verified paths.
+        cache[path] = true;
+      } else {
+        // Limited file descriptors, need to use semaphore (wait & signal).
+        semaphore.wait(loadTags, path, function (path) {
+          // Signal to release file descriptor.
+          semaphore.signal();
+
+          var tags = mtags.getAllTags(path);
+          if (tags) {
+            save(path, tags);
+            // Mark verified paths.
+            cache[path] = true;
+          }
+        });
+      }
+    }
+  });
 };
+exports.index = index;
 
 function loadTags(path, callback) {
   var reader = new mtags.getReader('FileAPIReader');
   mtags.loadTags(path, callback, {dataReader: new reader(new File(path))});
 }
 
-exports.get = function (field) {
-  if (!field) {
-    return index;
-  }
-
-  if (!index[field]) {
-    throw "Error: Invalid index field.";
-  }
-
-  return index[field];
-};
+function save(path, tags) {
+  console.log(path);
+  var track = new Track({
+    path: path,
+    artist: tags.artist,
+    album: tags.album,
+    title: tags.title
+  });
+  track.save(function (err) {
+    if (!err) {
+      return console.log("Track created");
+    } else {
+      throw err;
+    }
+  });
+}
