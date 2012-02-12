@@ -2,6 +2,7 @@ var File = require('file-api').File,
     mtags = require('mtags'),
     traverse = require('./traversal').traverse,
     semaphore = require('./monitor').semaphore(50),
+    _ = require('underscore'),
     mongoose = require('mongoose');
 
 // Get/define Track model.
@@ -30,6 +31,18 @@ function init(basePath) {
 exports.init = init;
 
 function index(path) {
+  var parse = function (path) {
+    // Signal to release file descriptor.
+    semaphore.signal();
+
+    var tags = mtags.getAllTags(path);
+    if (tags) {
+      save(path, tags);
+      // Mark verified paths.
+      cache[path] = true;
+    }
+  };
+
   // Begin filesystem traversal.
   traverse.bfs(path, function (dir, state) {
     var files = dir.get_files(),
@@ -46,21 +59,11 @@ function index(path) {
         cache[path] = true;
       } else {
         // Limited file descriptors, need to use semaphore (wait & signal).
-        semaphore.wait(loadTags, path, function (path) {
-          // Signal to release file descriptor.
-          semaphore.signal();
-
-          var tags = mtags.getAllTags(path);
-          if (tags) {
-            save(path, tags);
-            // Mark verified paths.
-            cache[path] = true;
-          }
-        });
+        semaphore.wait(loadTags, path, parse);
       }
     }
   });
-};
+}
 exports.index = index;
 
 function loadTags(path, callback) {

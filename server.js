@@ -1,10 +1,14 @@
 var mongoose = require('mongoose'),
-    index = require('./index.js')
+    index = require('./index.js'),
     _ = require('underscore'),
-    app = require('express').createServer(),
+    express = require('express'),
     argv = require('optimist').argv;
 
 var BASE_PATH = argv.f || './';
+
+app = express.createServer();
+app.use(express.cookieParser());
+app.use(express.session({ secret: "subnode" }));
 
 // Connect to mongodb.
 mongoose.connect('mongodb://localhost/media');

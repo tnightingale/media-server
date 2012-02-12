@@ -3,7 +3,16 @@ var Track = require('../models/track').Track(mongoose);
 
 exports.index = function (req, res) {
   Track.distinct('album', {}, function (err, albums) {
-    res.json(albums.sort());
+    albums.sort();
+
+    var items = [];
+    for (var index in albums) {
+      items.push({
+        name: albums[index],
+        actions: { tracks: '/albums/' + encodeURIComponent(albums[index]) }
+      });
+    }
+    res.json(items);
   });
 };
 
